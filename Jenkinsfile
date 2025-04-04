@@ -12,7 +12,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/aditya-blanko/python-webapp.git'
+                git branch: 'main', url: 'https://github.com/PerrytheePlatypus/python_project.git'
             }
         }
         
