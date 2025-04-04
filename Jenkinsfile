@@ -4,7 +4,7 @@ pipeline {
     environment {
         AZURE_CREDENTIALS_ID = 'azure-service-principal-py'
         RESOURCE_GROUP = 'python-webapp-rg'
-        APP_SERVICE_NAME = 'python-webapp-service-adi-7'
+        APP_SERVICE_NAME = 'python-webapp-service-adi-a27'
         PYTHON_VERSION = '3.10'
         PYTHON_PATH = 'C:\\Users\\window 10\\AppData\\Local\\Programs\\Python\\Python310\\python.exe' 
     }
