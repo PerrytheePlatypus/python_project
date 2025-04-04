@@ -34,16 +34,23 @@ pipeline {
         
         stage('Deploy') {
             steps {
-               
                 withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
                     bat '''
+                        echo "Logging in to Azure..."
                         az login --service-principal -u "%AZURE_CLIENT_ID%" -p "%AZURE_CLIENT_SECRET%" --tenant "%AZURE_TENANT_ID%"
-                        az group create --name %RESOURCE_GROUP% --location eastus
-                        az appservice plan create --name %APP_SERVICE_NAME%-plan --resource-group %RESOURCE_GROUP% --sku B1 --is-linux
-                        az webapp create --resource-group %RESOURCE_GROUP% --plan %APP_SERVICE_NAME%-plan --name %APP_SERVICE_NAME% --runtime "PYTHON|%PYTHON_VERSION%"
-                        az webapp config set --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
+                        az account show --output json
+                        echo "Checking if resource group exists..."
+                        az group show --name %RESOURCE_GROUP% --output json || az group create --name %RESOURCE_GROUP% --location eastus --verbose
+                        echo "Checking if app service plan exists..."
+                        az appservice plan show --name %APP_SERVICE_NAME%-plan --resource-group %RESOURCE_GROUP% --output json || az appservice plan create --name %APP_SERVICE_NAME%-plan --resource-group %RESOURCE_GROUP% --sku B1 --is-linux --verbose
+                        echo "Checking if web app exists..."
+                        az webapp show --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --output json || az webapp create --resource-group %RESOURCE_GROUP% --plan %APP_SERVICE_NAME%-plan --name %APP_SERVICE_NAME% --runtime "PYTHON|%PYTHON_VERSION%" --verbose
+                        echo "Setting web app config..."
+                        az webapp config set --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 app:app" --verbose
+                        echo "Compressing files..."
                         powershell Compress-Archive -Path ./* -DestinationPath ./deploy.zip -Force
-                        az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path ./deploy.zip --timeout 1800
+                        echo "Deploying web app..."
+                        az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path ./deploy.zip --timeout 1800 --verbose
                     '''
                 }
             }
