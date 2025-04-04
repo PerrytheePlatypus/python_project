@@ -33,21 +33,29 @@ pipeline {
         }
         
         stage('Deploy') {
-            steps {
-               
-                withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
-                    bat '''
-                        az login --service-principal -u "%AZURE_CLIENT_ID%" -p "%AZURE_CLIENT_SECRET%" --tenant "%AZURE_TENANT_ID%"
-                        az group create --name %RESOURCE_GROUP% --location eastus
-                        az appservice plan create --name %APP_SERVICE_NAME%-plan --resource-group %RESOURCE_GROUP% --sku B1 --is-linux
-                        az webapp create --resource-group %RESOURCE_GROUP% --plan %APP_SERVICE_NAME%-plan --name %APP_SERVICE_NAME% --runtime "PYTHON|%PYTHON_VERSION%"
-                        az webapp config set --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
-                        powershell Compress-Archive -Path ./* -DestinationPath ./deploy.zip -Force
-                        az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path ./deploy.zip --timeout 1800
-                    '''
-                }
-            }
+    steps {
+        withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
+            bat '''
+                az login --service-principal -u "%AZURE_CLIENT_ID%" -p "%AZURE_CLIENT_SECRET%" --tenant "%AZURE_TENANT_ID%"
+                
+                # Check if resource group exists before creating
+                az group show --name %RESOURCE_GROUP% --output none || az group create --name %RESOURCE_GROUP% --location eastus
+                
+                # Create app service plan if it doesn't exist
+                az appservice plan show --name %APP_SERVICE_NAME%-plan --resource-group %RESOURCE_GROUP% --output none || az appservice plan create --name %APP_SERVICE_NAME%-plan --resource-group %RESOURCE_GROUP% --sku B1 --is-linux
+                
+                # Create web app if it doesn't exist
+                az webapp show --name %APP_SERVICE_NAME% --resource-group %RESOURCE_GROUP% --output none || az webapp create --resource-group %RESOURCE_GROUP% --plan %APP_SERVICE_NAME%-plan --name %APP_SERVICE_NAME% --runtime "PYTHON|%PYTHON_VERSION%"
+                
+                az webapp config set --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
+                
+                powershell Compress-Archive -Path ./* -DestinationPath ./deploy.zip -Force
+                az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path ./deploy.zip --timeout 1800
+            '''
         }
+    }
+}
+
     }
     
     post {
