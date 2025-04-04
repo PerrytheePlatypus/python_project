@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        AZURE_CREDENTIALS_ID = 'azure-service-principal'
+        AZURE_CREDENTIALS_ID = 'azure-service-principal-py'
         RESOURCE_GROUP = 'python-webapp-rg'
         APP_SERVICE_NAME = 'python-webapp-service-adi-7'
         PYTHON_VERSION = '3.11'
