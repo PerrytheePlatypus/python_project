@@ -6,18 +6,24 @@ pipeline {
         RESOURCE_GROUP = 'python-webapp-rg'
         APP_SERVICE_NAME = 'python-webapp-service-adi-7'
         PYTHON_VERSION = '3.10'
-        PYTHON_PATH = 'C:\Users\91907\AppData\Local\Programs\Python\Python310\python.exe'
+        PYTHON_PATH = 'C:\\Users\\91907\\AppData\\Local\\Programs\\Python\\Python310\\python.exe'
     }
     
     stages {
         stage('Checkout Code') {
             steps {
+                script {
+                    echo "Checking out code from GitHub repository..."
+                }
                 git branch: 'main', url: 'https://github.com/PerrytheePlatypus/python_project.git'
             }
         }
         
         stage('Build') {
             steps {
+                script {
+                    echo "Building the application..."
+                }
                 bat '''
                     "%PYTHON_PATH%" --version
                     "%PYTHON_PATH%" -m pip install --upgrade pip
@@ -28,17 +34,19 @@ pipeline {
         
         stage('Deploy') {
             steps {
+                script {
+                    echo "Deploying the application to Azure App Service..."
+                }
                 withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
-                    // Login to Azure
-                    bat 'az login --service-principal -u "%AZURE_CLIENT_ID%" -p "%AZURE_CLIENT_SECRET%" --tenant "%AZURE_TENANT_ID%"'
-                    bat 'az group create --name %RESOURCE_GROUP% --location eastus'
-                    bat 'az appservice plan create --name %APP_SERVICE_NAME%-plan --resource-group %RESOURCE_GROUP% --sku B1 --is-linux'
-                    bat 'az webapp create --resource-group %RESOURCE_GROUP% --plan %APP_SERVICE_NAME%-plan --name %APP_SERVICE_NAME% --runtime "PYTHON|%PYTHON_VERSION%"'
-         
-                    bat 'az webapp config set --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 app:app"'
-                    bat  'powershell Compress-Archive -Path ./* -DestinationPath ./deploy.zip" -Force'
-  
-                    bat 'az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path ./deploy.zip --timeout 1800'
+                    bat '''
+                        az login --service-principal -u "%AZURE_CLIENT_ID%" -p "%AZURE_CLIENT_SECRET%" --tenant "%AZURE_TENANT_ID%"
+                        az group create --name %RESOURCE_GROUP% --location eastus
+                        az appservice plan create --name %APP_SERVICE_NAME%-plan --resource-group %RESOURCE_GROUP% --sku B1 --is-linux
+                        az webapp create --resource-group %RESOURCE_GROUP% --plan %APP_SERVICE_NAME%-plan --name %APP_SERVICE_NAME% --runtime "PYTHON|%PYTHON_VERSION%"
+                        az webapp config set --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
+                        powershell Compress-Archive -Path ./* -DestinationPath ./deploy.zip -Force
+                        az webapp deploy --resource-group %RESOURCE_GROUP% --name %APP_SERVICE_NAME% --src-path ./deploy.zip --timeout 1800
+                    '''
                 }
             }
         }
