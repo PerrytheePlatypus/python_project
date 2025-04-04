@@ -34,9 +34,7 @@ pipeline {
         
         stage('Deploy') {
             steps {
-                script {
-                    echo "Deploying the application to Azure App Service..."
-                }
+               
                 withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
                     bat '''
                         az login --service-principal -u "%AZURE_CLIENT_ID%" -p "%AZURE_CLIENT_SECRET%" --tenant "%AZURE_TENANT_ID%"
